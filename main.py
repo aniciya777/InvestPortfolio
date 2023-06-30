@@ -4,7 +4,8 @@ import apimoex
 import pandas as pd
 import requests
 from bokeh.layouts import column
-from bokeh.models import Button, MultiChoice, Div, DateRangeSlider
+from bokeh.models import Button, MultiChoice, Div, DateRangeSlider, DataTable, TableColumn, DateFormatter, \
+    ColumnDataSource, RadioGroup
 from bokeh.plotting import curdoc
 from pypfopt import risk_models, expected_returns, EfficientFrontier
 
@@ -19,6 +20,9 @@ DEFAULT_DATE_INTERVAL = timedelta(days=90)
 
 
 def event_callback_update_data(event):
+    if not is_reset:
+        calculate_portfolio()
+        return
     global securities_list, date_from, date_to, secid_list, df
     securities_list = multi_choice_securities.value
     date_from, date_to = date_range_slider.value
@@ -43,6 +47,15 @@ def event_callback_update_data(event):
                 dfs.append(df_temp)
         df = pd.concat(dfs, axis=1)
         table.text = '<p><b>Исходные данные:</b><br>' + df.to_html() + '</p>'
+
+        dtable.columns = [
+            TableColumn(field="Date", title="Date", formatter=DateFormatter()),
+            *(TableColumn(field=security, title=security) for security in securities_list)
+        ]
+        dtable.source = ColumnDataSource({
+            'Date': list(df.index),
+            **{security: df[security] for security in securities_list}
+        })
         if df.isna().values.any():
             raise Exception('В выбранном периоде есть пропуски в данных!')
         calculate_portfolio()
@@ -52,6 +65,8 @@ def event_callback_update_data(event):
 
 
 def clear(attr, old, new):
+    global is_reset
+    is_reset = True
     results.text = ''
     table.text = ''
 
@@ -68,7 +83,14 @@ def calculate_portfolio():
     text += '</p>'
     text += '<p><b>Оптимальный портфель активов:</b><br>'
     ef = EfficientFrontier(mean_returns, covariances)
-    weights = ef.max_sharpe()
+    match method_radio_group.active:
+        case 0:
+            weights = ef.max_sharpe()
+        case 1:
+            weights = ef.min_volatility()
+        case 2:
+            weights = ef.max_quadratic_utility()
+    ef.clean_weights()
     text += f'Ожидаемая доходность: <i>{round(ef.portfolio_performance()[0] * 100, 2)} %</i><br>'
     text += f'Риск: <i>{round(ef.portfolio_performance()[1] * 100, 2)} %</i><br>'
     text += f'Коэффициент Шарпа: <i>{round(ef.portfolio_performance()[2], 2)}</i><br>'
@@ -78,6 +100,7 @@ def calculate_portfolio():
     text += '</ul></p>'
     text += '<hr>'
     results.text = text
+    is_reset = False
 
 
 # Получение списка акций с Московской биржи
@@ -109,6 +132,9 @@ date_range_slider = DateRangeSlider(
     width_policy='max',
 )
 date_range_slider.on_change('value', clear)
+method_radio_group = RadioGroup(
+    labels=['Максимизация коэффициента Шарпа', 'Минимизация риска', 'Максимизация квадратичной полезности'],
+    active=0)
 button = Button(label="РАССЧИТАТЬ (МАКСИМИЗАЦИЯ КОЭФФИЦИЕНТА ШАРПА)", button_type="success")
 button.on_click(event_callback_update_data)
 
@@ -122,12 +148,16 @@ title = Div(text='''
 ''')
 results = Div(text='')
 table = Div(text='')
+dtable = DataTable(width_policy='max')
 curdoc().add_root(column(
     title,
     multi_choice_securities,
     date_range_slider,
+    method_radio_group,
     button,
     results,
     table,
+    # dtable,
 ))
 curdoc().title = "Выбор акций"
+is_reset = True
