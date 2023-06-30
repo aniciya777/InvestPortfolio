@@ -4,8 +4,7 @@ import apimoex
 import pandas as pd
 import requests
 from bokeh.layouts import column
-from bokeh.models import Button, MultiChoice, Div, DateRangeSlider, DataTable, TableColumn, DateFormatter, \
-    ColumnDataSource, RadioGroup
+from bokeh.models import Button, MultiChoice, Div, DateRangeSlider, RadioGroup
 from bokeh.plotting import curdoc
 from pypfopt import risk_models, expected_returns, EfficientFrontier
 
@@ -47,15 +46,6 @@ def event_callback_update_data(event):
                 dfs.append(df_temp)
         df = pd.concat(dfs, axis=1)
         table.text = '<p><b>Исходные данные:</b><br>' + df.to_html() + '</p>'
-
-        dtable.columns = [
-            TableColumn(field="Date", title="Date", formatter=DateFormatter()),
-            *(TableColumn(field=security, title=security) for security in securities_list)
-        ]
-        dtable.source = ColumnDataSource({
-            'Date': list(df.index),
-            **{security: df[security] for security in securities_list}
-        })
         if df.isna().values.any():
             raise Exception('В выбранном периоде есть пропуски в данных!')
         calculate_portfolio()
@@ -148,7 +138,6 @@ title = Div(text='''
 ''')
 results = Div(text='')
 table = Div(text='')
-dtable = DataTable(width_policy='max')
 curdoc().add_root(column(
     title,
     multi_choice_securities,
@@ -157,7 +146,6 @@ curdoc().add_root(column(
     button,
     results,
     table,
-    # dtable,
 ))
 curdoc().title = "Выбор акций"
 is_reset = True
