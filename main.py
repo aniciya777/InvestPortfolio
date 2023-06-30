@@ -135,7 +135,7 @@ date_range_slider.on_change('value', clear)
 method_radio_group = RadioGroup(
     labels=['Максимизация коэффициента Шарпа', 'Минимизация риска', 'Максимизация квадратичной полезности'],
     active=0)
-button = Button(label="РАССЧИТАТЬ (МАКСИМИЗАЦИЯ КОЭФФИЦИЕНТА ШАРПА)", button_type="success")
+button = Button(label="РАССЧИТАТЬ", button_type="success", width_policy='max', height=50)
 button.on_click(event_callback_update_data)
 
 title = Div(text='''
