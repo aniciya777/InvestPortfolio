@@ -1,0 +1,28 @@
+table {
+    margin: 10px auto;
+    border-collapse: collapse;
+}
+
+table th, table td {
+    text-align: center;
+    padding: 2px 10px;
+    border-color: white;
+}
+
+div.bk-clearfix {
+    width: 100%;
+    overflow-x: auto;
+}
+
+td {
+    background: #e7f7fb;
+}
+
+td.error {
+    background: #ff6d6d;
+}
+
+th {
+    background: #00a098;
+    color: white;
+}
